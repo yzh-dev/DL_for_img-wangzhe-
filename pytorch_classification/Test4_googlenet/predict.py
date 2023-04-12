@@ -35,13 +35,13 @@ def main():
         class_indict = json.load(f)
 
     # create model
-    model = GoogLeNet(num_classes=5, aux_logits=False).to(device)
+    model = GoogLeNet(num_classes=5, aux_logits=False).to(device)#预测阶段没有使用辅助分类器
 
     # load model weights
     weights_path = "./googleNet.pth"
     assert os.path.exists(weights_path), "file: '{}' dose not exist.".format(weights_path)
-    missing_keys, unexpected_keys = model.load_state_dict(torch.load(weights_path, map_location=device),
-                                                          strict=False)
+    # 训练的时候保存了辅助分类器的模型参数，因此这里设置strict = False，表示参数不需要完全对齐
+    missing_keys, unexpected_keys = model.load_state_dict(torch.load(weights_path, map_location=device), strict=False)
 
     model.eval()
     with torch.no_grad():

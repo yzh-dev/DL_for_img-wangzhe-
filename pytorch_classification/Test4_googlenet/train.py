@@ -91,11 +91,11 @@ def main():
             images, labels = data
             optimizer.zero_grad()
             logits, aux_logits2, aux_logits1 = net(images.to(device))
-            loss0 = loss_function(logits, labels.to(device))
+            loss0 = loss_function(logits, labels.to(device))  # TODO:计算3次损失
             loss1 = loss_function(aux_logits1, labels.to(device))
             loss2 = loss_function(aux_logits2, labels.to(device))
             loss = loss0 + loss1 * 0.3 + loss2 * 0.3
-            loss.backward()
+            loss.backward()  # TODO：只能进行1次反向传播
             optimizer.step()
 
             # print statistics
@@ -127,5 +127,6 @@ def main():
     print('Finished Training')
 
 
+# 迭代30轮后，UP主准确率能达到86.3%，这里跑到了train_loss: 0.839  val_accuracy: 0.786
 if __name__ == '__main__':
     main()

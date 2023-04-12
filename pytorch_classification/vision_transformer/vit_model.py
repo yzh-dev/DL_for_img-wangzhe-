@@ -32,6 +32,7 @@ class DropPath(nn.Module):
     """
     Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
@@ -40,10 +41,12 @@ class DropPath(nn.Module):
         return drop_path(x, self.drop_prob, self.training)
 
 
+# Patch Embedding层，将原始图片打成patch
 class PatchEmbed(nn.Module):
     """
     2D Image to Patch Embedding
     """
+
     def __init__(self, img_size=224, patch_size=16, in_c=3, embed_dim=768, norm_layer=None):
         super().__init__()
         img_size = (img_size, img_size)
@@ -58,6 +61,7 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x):
         B, C, H, W = x.shape
+        # 要求图片尺寸和初始化的尺寸一致
         assert H == self.img_size[0] and W == self.img_size[1], \
             f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
 
@@ -68,9 +72,10 @@ class PatchEmbed(nn.Module):
         return x
 
 
+# 注意力模块
 class Attention(nn.Module):
     def __init__(self,
-                 dim,   # 输入token的dim
+                 dim,  # 输入token的dim
                  num_heads=8,
                  qkv_bias=False,
                  qk_scale=None,
@@ -79,13 +84,14 @@ class Attention(nn.Module):
         super(Attention, self).__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = qk_scale or head_dim ** -0.5
+        self.scale = qk_scale or head_dim ** -0.5  # 1/(根号d_k)
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop_ratio)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop_ratio)
 
     def forward(self, x):
+        # num_patches + 1(一张图片的patcher总数，加上分类Cls的token)
         # [batch_size, num_patches + 1, total_embed_dim]
         B, N, C = x.shape
 
@@ -97,7 +103,7 @@ class Attention(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         # transpose: -> [batch_size, num_heads, embed_dim_per_head, num_patches + 1]
-        # @: multiply -> [batch_size, num_heads, num_patches + 1, num_patches + 1]
+        # @: multiply -> [batch_size, num_heads, num_patches + 1, num_patches + 1]矩阵相乘
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
@@ -111,10 +117,12 @@ class Attention(nn.Module):
         return x
 
 
+# Transformer块中的MLP层
 class Mlp(nn.Module):
     """
     MLP as used in Vision Transformer, MLP-Mixer and related networks
     """
+
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
         out_features = out_features or in_features
@@ -133,6 +141,7 @@ class Mlp(nn.Module):
         return x
 
 
+# Transformer块
 class Block(nn.Module):
     def __init__(self,
                  dim,
@@ -142,7 +151,7 @@ class Block(nn.Module):
                  qk_scale=None,
                  drop_ratio=0.,
                  attn_drop_ratio=0.,
-                 drop_path_ratio=0.,
+                 drop_path_ratio=0.,#原论文中的源码采用的是Dropout，这里的源码作者采用了Droppath
                  act_layer=nn.GELU,
                  norm_layer=nn.LayerNorm):
         super(Block, self).__init__()

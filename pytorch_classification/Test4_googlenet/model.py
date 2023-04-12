@@ -9,7 +9,7 @@ class GoogLeNet(nn.Module):
         self.aux_logits = aux_logits
 
         self.conv1 = BasicConv2d(3, 64, kernel_size=7, stride=2, padding=3)
-        self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
+        self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)#TODO:ceil_mode=True遇到小数时向上取整
 
         self.conv2 = BasicConv2d(64, 64, kernel_size=1)
         self.conv3 = BasicConv2d(64, 192, kernel_size=3, padding=1)
@@ -60,7 +60,7 @@ class GoogLeNet(nn.Module):
         # N x 480 x 14 x 14
         x = self.inception4a(x)
         # N x 512 x 14 x 14
-        if self.training and self.aux_logits:    # eval model lose this layer
+        if self.training and self.aux_logits:  # eval model lose this layer
             aux1 = self.aux1(x)
 
         x = self.inception4b(x)
@@ -69,7 +69,7 @@ class GoogLeNet(nn.Module):
         # N x 512 x 14 x 14
         x = self.inception4d(x)
         # N x 528 x 14 x 14
-        if self.training and self.aux_logits:    # eval model lose this layer
+        if self.training and self.aux_logits:  # eval model lose this layer
             aux2 = self.aux2(x)
 
         x = self.inception4e(x)
@@ -88,7 +88,7 @@ class GoogLeNet(nn.Module):
         x = self.dropout(x)
         x = self.fc(x)
         # N x 1000 (num_classes)
-        if self.training and self.aux_logits:   # eval model lose this layer
+        if self.training and self.aux_logits:  # eval model lose this layer
             return x, aux2, aux1
         return x
 
@@ -111,14 +111,14 @@ class Inception(nn.Module):
 
         self.branch2 = nn.Sequential(
             BasicConv2d(in_channels, ch3x3red, kernel_size=1),
-            BasicConv2d(ch3x3red, ch3x3, kernel_size=3, padding=1)   # 保证输出大小等于输入大小
+            BasicConv2d(ch3x3red, ch3x3, kernel_size=3, padding=1)  # 保证输出大小等于输入大小
         )
 
         self.branch3 = nn.Sequential(
             BasicConv2d(in_channels, ch5x5red, kernel_size=1),
             # 在官方的实现中，其实是3x3的kernel并不是5x5，这里我也懒得改了，具体可以参考下面的issue
             # Please see https://github.com/pytorch/vision/issues/906 for details.
-            BasicConv2d(ch5x5red, ch5x5, kernel_size=5, padding=2)   # 保证输出大小等于输入大小
+            BasicConv2d(ch5x5red, ch5x5, kernel_size=5, padding=2)  # 保证输出大小等于输入大小
         )
 
         self.branch4 = nn.Sequential(
@@ -136,7 +136,7 @@ class Inception(nn.Module):
         return torch.cat(outputs, 1)
 
 
-class InceptionAux(nn.Module):
+class InceptionAux(nn.Module):#TODO:多条通路如何进行反向传播
     def __init__(self, in_channels, num_classes):
         super(InceptionAux, self).__init__()
         self.averagePool = nn.AvgPool2d(kernel_size=5, stride=3)
@@ -152,7 +152,7 @@ class InceptionAux(nn.Module):
         x = self.conv(x)
         # N x 128 x 4 x 4
         x = torch.flatten(x, 1)
-        x = F.dropout(x, 0.5, training=self.training)
+        x = F.dropout(x, 0.5, training=self.training)  # TODO:在model.train模式下，self.training就等于True
         # N x 2048
         x = F.relu(self.fc1(x), inplace=True)
         x = F.dropout(x, 0.5, training=self.training)
@@ -162,8 +162,8 @@ class InceptionAux(nn.Module):
         return x
 
 
-class BasicConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, **kwargs):
+class BasicConv2d(nn.Module):#包含了激活函数的通用卷积层
+    def __init__(self, in_channels, out_channels, **kwargs):#核大小和步长等其他参数通过可变参数kwargs指定
         super(BasicConv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, **kwargs)
         self.relu = nn.ReLU(inplace=True)

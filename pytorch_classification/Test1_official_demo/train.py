@@ -13,20 +13,16 @@ def main():
 
     # 50000张训练图片
     # 第一次使用时要将download设置为True才会自动去下载数据集
-    train_set = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                             download=False, transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=36,
-                                               shuffle=True, num_workers=0)
+    train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=36, shuffle=True, num_workers=0)
 
     # 10000张验证图片
     # 第一次使用时要将download设置为True才会自动去下载数据集
-    val_set = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=False, transform=transform)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=5000,
-                                             shuffle=False, num_workers=0)
+    val_set = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=5000, shuffle=False, num_workers=0)
     val_data_iter = iter(val_loader)
     val_image, val_label = next(val_data_iter)
-    
+
     # classes = ('plane', 'car', 'bird', 'cat',
     #            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -51,8 +47,8 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-            if step % 500 == 499:    # print every 500 mini-batches
-                with torch.no_grad():
+            if step % 500 == 499:  # print every 500 mini-batches
+                with torch.no_grad():  # TODO：预测过程中，不需要计算梯度，以免占用额外内存和计算资源
                     outputs = net(val_image)  # [batch, 10]
                     predict_y = torch.max(outputs, dim=1)[1]
                     accuracy = torch.eq(predict_y, val_label).sum().item() / val_label.size(0)

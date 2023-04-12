@@ -61,21 +61,24 @@ def main():
                                                                            val_num))
 
     # create model
-    net = MobileNetV2(num_classes=5)
+    net = MobileNetV2(num_classes=5)  # 指定了最后的类别数等于5
 
     # load pretrain weights
     # download url: https://download.pytorch.org/models/mobilenet_v2-b0353104.pth
-    model_weight_path = "./mobilenet_v2.pth"
+    # 下载后重命名为mobilenet_v2_pretrained.pth
+    model_weight_path = "./mobilenet_v2_pretrained.pth"
     assert os.path.exists(model_weight_path), "file {} dose not exist.".format(model_weight_path)
     pre_weights = torch.load(model_weight_path, map_location='cpu')
 
+    # 删除最后的分类层预训练参数
     # delete classifier weights
     pre_dict = {k: v for k, v in pre_weights.items() if net.state_dict()[k].numel() == v.numel()}
     missing_keys, unexpected_keys = net.load_state_dict(pre_dict, strict=False)
 
     # freeze features weights
-    for param in net.features.parameters():
-        param.requires_grad = False
+    # 冻结了特征抽取层的参数
+    # for param in net.features.parameters():
+    #     param.requires_grad = False
 
     net.to(device)
 
@@ -87,7 +90,7 @@ def main():
     optimizer = optim.Adam(params, lr=0.0001)
 
     best_acc = 0.0
-    save_path = './MobileNetV2.pth'
+    save_path = './MobileNetV2_best.pth'
     train_steps = len(train_loader)
     for epoch in range(epochs):
         # train

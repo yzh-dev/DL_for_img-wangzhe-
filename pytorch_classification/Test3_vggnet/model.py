@@ -11,11 +11,11 @@ model_urls = {
 
 
 class VGG(nn.Module):
-    def __init__(self, features, num_classes=1000, init_weights=False):
+    def __init__(self, features_net, num_classes=1000, init_weights=False):
         super(VGG, self).__init__()
-        self.features = features
+        self.features_net = features_net
         self.classifier = nn.Sequential(
-            nn.Linear(512*7*7, 4096),
+            nn.Linear(512 * 7 * 7, 4096),
             nn.ReLU(True),
             nn.Dropout(p=0.5),
             nn.Linear(4096, 4096),
@@ -28,7 +28,7 @@ class VGG(nn.Module):
 
     def forward(self, x):
         # N x 3 x 224 x 224
-        x = self.features(x)
+        x = self.features_net(x)
         # N x 512 x 7 x 7
         x = torch.flatten(x, start_dim=1)
         # N x 512*7*7
@@ -48,7 +48,7 @@ class VGG(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-def make_features(cfg: list):
+def make_features(cfg: list):  # 指定传入参数为列表
     layers = []
     in_channels = 3
     for v in cfg:
@@ -58,7 +58,7 @@ def make_features(cfg: list):
             conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
             layers += [conv2d, nn.ReLU(True)]
             in_channels = v
-    return nn.Sequential(*layers)
+    return nn.Sequential(*layers)  # 通过非关键字参数的方式，将列表传入到nn.Sequential中
 
 
 cfgs = {
@@ -73,5 +73,8 @@ def vgg(model_name="vgg16", **kwargs):
     assert model_name in cfgs, "Warning: model number {} not in cfgs dict!".format(model_name)
     cfg = cfgs[model_name]
 
-    model = VGG(make_features(cfg), **kwargs)
+    model = VGG(make_features(cfg), **kwargs)##**kwargs指的是可变长字典变量，对应到模型定义中的num_classes=1000, init_weights=False
     return model
+
+
+net = vgg(model_name="vgg16")

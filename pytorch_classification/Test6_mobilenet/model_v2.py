@@ -2,6 +2,7 @@ from torch import nn
 import torch
 
 
+# TF官方所实现的方法
 def _make_divisible(ch, divisor=8, min_ch=None):
     """
     This function is taken from the original tf repo.
@@ -17,8 +18,8 @@ def _make_divisible(ch, divisor=8, min_ch=None):
         new_ch += divisor
     return new_ch
 
-
-class ConvBNReLU(nn.Sequential):
+# 包含了卷积、BN、ReLU6的ConvBNReLU层
+class ConvBNReLU(nn.Sequential):#参考了官方写法，继承自nn.Sequential，将使用官方的参数进行训练
     def __init__(self, in_channel, out_channel, kernel_size=3, stride=1, groups=1):
         padding = (kernel_size - 1) // 2
         super(ConvBNReLU, self).__init__(
@@ -28,10 +29,13 @@ class ConvBNReLU(nn.Sequential):
         )
 
 
+# 倒残差结构
 class InvertedResidual(nn.Module):
+    # 输入特征矩阵通道in_channel，输出特征矩阵通道out_channel，步长stride，论文表格中的通道扩展因子t
     def __init__(self, in_channel, out_channel, stride, expand_ratio):
         super(InvertedResidual, self).__init__()
         hidden_channel = in_channel * expand_ratio
+        # 只有当stride=1且输入特征矩阵与输出特征矩阵shape相同时才有shortcut连接
         self.use_shortcut = stride == 1 and in_channel == out_channel
 
         layers = []
@@ -56,13 +60,21 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV2(nn.Module):
+    # alpha参数：用于控制卷积核个数的倍率
+    #
     def __init__(self, num_classes=1000, alpha=1.0, round_nearest=8):
         super(MobileNetV2, self).__init__()
         block = InvertedResidual
+        # _make_divisible函数将32 * alpha调整为round_nearest的整数倍，目的是为了底层高效调用
         input_channel = _make_divisible(32 * alpha, round_nearest)
         last_channel = _make_divisible(1280 * alpha, round_nearest)
 
+        # 每个倒残差块的配置参数
         inverted_residual_setting = [
+            # t是扩展因子
+            # c是输出特征矩阵深度channel
+            # n是bottleneck的重复次数
+            # s是步距（针对第一层，其他为1）
             # t, c, n, s
             [1, 16, 1, 1],
             [6, 24, 2, 2],
@@ -79,6 +91,7 @@ class MobileNetV2(nn.Module):
         # building inverted residual residual blockes
         for t, c, n, s in inverted_residual_setting:
             output_channel = _make_divisible(c * alpha, round_nearest)
+            # 遍历倒残差结构
             for i in range(n):
                 stride = s if i == 0 else 1
                 features.append(block(input_channel, output_channel, stride, expand_ratio=t))

@@ -13,7 +13,7 @@ def channel_shuffle(x: Tensor, groups: int) -> Tensor:
     # reshape
     # [batch_size, num_channels, height, width] -> [batch_size, groups, channels_per_group, height, width]
     x = x.view(batch_size, groups, channels_per_group, height, width)
-
+    # 调整通道顺序，然后保持内存连续（加快训练速度）
     x = torch.transpose(x, 1, 2).contiguous()
 
     # flatten

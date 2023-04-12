@@ -24,4 +24,9 @@ class LeNet(nn.Module):
         x = self.fc3(x)              # output(10)
         return x
 
-
+#测试形状变化
+# import  torch
+# net = LeNet()
+# print(net)
+# input = torch.rand([100,3,32,32])
+# output = net(input)

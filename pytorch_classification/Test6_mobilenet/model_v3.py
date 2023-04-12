@@ -22,6 +22,7 @@ def _make_divisible(ch, divisor=8, min_ch=None):
     return new_ch
 
 
+# 卷积 BN 激活层
 class ConvBNActivation(nn.Sequential):
     def __init__(self,
                  in_planes: int,
@@ -50,12 +51,12 @@ class ConvBNActivation(nn.Sequential):
 class SqueezeExcitation(nn.Module):
     def __init__(self, input_c: int, squeeze_factor: int = 4):
         super(SqueezeExcitation, self).__init__()
-        squeeze_c = _make_divisible(input_c // squeeze_factor, 8)
-        self.fc1 = nn.Conv2d(input_c, squeeze_c, 1)
+        squeeze_c = _make_divisible(input_c // squeeze_factor, 8)  # 通道数调整到8的倍数
+        self.fc1 = nn.Conv2d(input_c, squeeze_c, 1)  # 使用1*1卷积,等价于全连接层
         self.fc2 = nn.Conv2d(squeeze_c, input_c, 1)
 
     def forward(self, x: Tensor) -> Tensor:
-        scale = F.adaptive_avg_pool2d(x, output_size=(1, 1))
+        scale = F.adaptive_avg_pool2d(x, output_size=(1, 1))  # 使用全局池化层,调整到1*1的尺寸大小
         scale = self.fc1(scale)
         scale = F.relu(scale, inplace=True)
         scale = self.fc2(scale)
@@ -63,16 +64,17 @@ class SqueezeExcitation(nn.Module):
         return scale * x
 
 
+# InvertedResidualConfig对应V3版本中每一个Bneck的参数设置
 class InvertedResidualConfig:
     def __init__(self,
-                 input_c: int,
+                 input_c: int,#输入通道数
                  kernel: int,
-                 expanded_c: int,
-                 out_c: int,
+                 expanded_c: int,#过第一个1*1卷积层,升维后的通道数
+                 out_c: int,#最后一个1*1卷积层,降维后的通道数
                  use_se: bool,
                  activation: str,
-                 stride: int,
-                 width_multi: float):
+                 stride: int,#第一个1*1卷积层的步长
+                 width_multi: float):  # width_multi是V2版本的alpha,通道变化倍率因子
         self.input_c = self.adjust_channels(input_c, width_multi)
         self.kernel = kernel
         self.expanded_c = self.adjust_channels(expanded_c, width_multi)
@@ -108,7 +110,7 @@ class InvertedResidual(nn.Module):
                                            norm_layer=norm_layer,
                                            activation_layer=activation_layer))
 
-        # depthwise
+        # depthwise,DW卷积,输入通道和输出通道数相同
         layers.append(ConvBNActivation(cnf.expanded_c,
                                        cnf.expanded_c,
                                        kernel_size=cnf.kernel,
@@ -158,7 +160,7 @@ class MobileNetV3(nn.Module):
             block = InvertedResidual
 
         if norm_layer is None:
-            norm_layer = partial(nn.BatchNorm2d, eps=0.001, momentum=0.01)
+            norm_layer = partial(nn.BatchNorm2d, eps=0.001, momentum=0.01)#python语法，设置eps=0.001, momentum=0.01的BN层
 
         layers: List[nn.Module] = []
 
